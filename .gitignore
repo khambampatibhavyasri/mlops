@@ -1,0 +1,35 @@
+# Python virtual environments
+.venv/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VS Code settings
+.vscode/
+
+# Data and model files
+data/
+models/
+
+# DVC cache and lock files
+.dvc/
+*.dvc
+.dvc.lock
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Docker artifacts
+*.pid
+
+# Ignore everything except env

@@ -1,0 +1,9 @@
+train:
+  alpha: 2.0
+  target: units
+features:
+  use_one_hot: true
+  include_price: true
+  include_promo: true
+  include_holiday: true
+  include_competitor_diff: true

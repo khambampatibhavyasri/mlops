@@ -1,0 +1,12 @@
+numpy
+pandas
+scikit-learn
+fastapi
+uvicorn
+pydantic
+pyyaml
+dvc
+evidently
+great_expectations
+prometheus_client
+requests

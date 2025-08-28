@@ -1,0 +1,23 @@
+stages:
+  ingest:
+    cmd: python src/ingest/ingest.py data/raw/sales.csv --out data/interim/ingested.csv
+    deps:
+      - src/ingest/ingest.py
+      - data/raw/sales.csv
+    outs:
+      - data/interim/ingested.csv
+  features:
+    cmd: python src/features/build_features.py --in data/interim/ingested.csv --out data/processed/features.csv
+    deps:
+      - src/features/build_features.py
+      - data/interim/ingested.csv
+    outs:
+      - data/processed/features.csv
+  train:
+    cmd: python src/models/train_baseline.py --in data/processed/features.csv --model models/baseline_linear.json --metrics models/metrics_baseline.json
+    deps:
+      - src/models/train_baseline.py
+      - data/processed/features.csv
+    outs:
+      - models/baseline_linear.json
+      - models/metrics_baseline.json
