@@ -22,6 +22,8 @@ models/
 .dvc/
 *.dvc
 .dvc.lock
+!.dvc/
+!data/raw/*.dvc
 
 # OS files
 .DS_Store
@@ -34,3 +36,4 @@ Thumbs.db
 *.pid
 
 # Ignore everything except env
+!.dvc/
