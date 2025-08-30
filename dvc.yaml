@@ -65,3 +65,25 @@ stages:
       - features.include_promo
       - features.include_holiday
       - features.include_competitor_diff
+    automl_pycaret:
+    cmd: >
+      python src/automl/pycaret_regression.py
+      --in data/processed/features.csv
+      --target ${train.target}
+      --leaderboard reports/pycaret_leaderboard.csv
+      --pred-sample reports/pycaret_predictions_sample.csv
+      --model-dir models/pycaret_best
+      --metrics reports/pycaret_metrics.json
+      --experiment-name pycaret-regression
+      --tracking-uri file:./mlruns
+    deps:
+      - src/automl/pycaret_regression.py
+      - data/processed/features.csv
+      - params.yaml
+    outs:
+      - reports/pycaret_leaderboard.csv
+      - reports/pycaret_predictions_sample.csv
+      - reports/pycaret_metrics.json
+      - models/pycaret_best.pkl
+    params:
+      - train.target
