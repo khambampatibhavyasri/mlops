@@ -6,6 +6,7 @@ stages:
       - data/raw/sales.csv
     outs:
       - data/interim/ingested.csv
+
   features:
     cmd: python src/features/build_features.py --in data/interim/ingested.csv --out data/processed/features.csv
     deps:
@@ -13,11 +14,21 @@ stages:
       - data/interim/ingested.csv
     outs:
       - data/processed/features.csv
+
   train:
     cmd: python src/models/train_baseline.py --in data/processed/features.csv --model models/baseline_linear.json --metrics models/metrics_baseline.json
     deps:
-      - src/models/train_baseline.py
+      - src/models/train_baseline.py   # make sure this file actually exists
       - data/processed/features.csv
     outs:
       - models/baseline_linear.json
       - models/metrics_baseline.json
+    params:
+      - params.yaml:
+          - train.alpha
+          - train.target
+          - features.use_one_hot
+          - features.include_price
+          - features.include_promo
+          - features.include_holiday
+          - features.include_competitor_diff
