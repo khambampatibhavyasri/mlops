@@ -1,0 +1,37 @@
+cmd: "python src/automl/pycaret_regression.py --in data/processed/features.csv --target
+  units --leaderboard reports/pycaret_leaderboard.csv --pred-sample reports/pycaret_predictions_sample.csv
+  --model-dir models/pycaret_best --metrics reports/pycaret_metrics.json --experiment-name
+  pycaret-regression --tracking-uri file:./mlruns\n"
+deps:
+- path: data/processed/features.csv
+  hash: md5
+  md5: 319eae83c796c30ee0cde9bb99b8c088
+  size: 9973521
+- path: params.yaml
+  hash: md5
+  md5: a01eaea90c5f72626fdcf732208fea9f
+  size: 175
+- path: src/automl/pycaret_regression.py
+  hash: md5
+  md5: b1e1a51e56d6b40f80c28595324ff1fa
+  size: 4012
+params:
+  params.yaml:
+    train.target: units
+outs:
+- path: models/pycaret_best.pkl
+  hash: md5
+  md5: 6e9ea6ee1669deb8b4e38c30baea410b
+  size: 192915
+- path: reports/pycaret_leaderboard.csv
+  hash: md5
+  md5: 3273ed4cae0fe6842caebe69cb43ce07
+  size: 1407
+- path: reports/pycaret_metrics.json
+  hash: md5
+  md5: 8ca1fb46cc512f3be3efb12bfae2886b
+  size: 77
+- path: reports/pycaret_predictions_sample.csv
+  hash: md5
+  md5: 525eab8d879138f3718c95e4effd3dc7
+  size: 35653

@@ -1,0 +1,6 @@
+artifact_location: file:///D:/mlops/mlruns/362902656324247658
+creation_time: 1756564539635
+experiment_id: '362902656324247658'
+last_update_time: 1756564539635
+lifecycle_stage: active
+name: pycaret-regression

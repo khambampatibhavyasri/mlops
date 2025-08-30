@@ -1,0 +1,16 @@
+cmd: python src/ingest/ingest.py data/raw/sales.csv --out 
+  data/interim/ingested.csv
+deps:
+- path: data/raw/sales.csv
+  hash: md5
+  md5: fbfb1af9b215a8e3bc011d2ac5011257
+  size: 3434497
+- path: src/ingest/ingest.py
+  hash: md5
+  md5: e150c308762489e18d80b5cb1a3fbd49
+  size: 1089
+outs:
+- path: data/interim/ingested.csv
+  hash: md5
+  md5: fbfb1af9b215a8e3bc011d2ac5011257
+  size: 3434497

@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/mlops/mlruns/241869660569321588/28d6f7e062a34ca9a7490e6f83ae49f0/artifacts
+end_time: 1756547648640
+entry_point_name: ''
+experiment_id: '241869660569321588'
+lifecycle_stage: active
+run_id: 28d6f7e062a34ca9a7490e6f83ae49f0
+run_name: spiffy-ram-9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756547648535
+status: 4
+tags: []
+user_id: bhavy

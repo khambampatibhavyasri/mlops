@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/mlops/mlruns/241869660569321588/03ff630733ce4de9912fdb278db2fb21/artifacts
+end_time: 1756547915602
+entry_point_name: ''
+experiment_id: '241869660569321588'
+lifecycle_stage: active
+run_id: 03ff630733ce4de9912fdb278db2fb21
+run_name: useful-ox-960
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756547908474
+status: 3
+tags: []
+user_id: bhavy

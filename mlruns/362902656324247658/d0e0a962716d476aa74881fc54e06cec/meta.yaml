@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/mlops/mlruns/362902656324247658/d0e0a962716d476aa74881fc54e06cec/artifacts
+end_time: 1756565938756
+entry_point_name: ''
+experiment_id: '362902656324247658'
+lifecycle_stage: active
+run_id: d0e0a962716d476aa74881fc54e06cec
+run_name: worried-mole-261
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756565938590
+status: 3
+tags: []
+user_id: bhavy

@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/mlops/mlruns/362902656324247658/ea803b1fc7a74bdd9ea541bbc4e3d9f2/artifacts
+end_time: 1756565470032
+entry_point_name: ''
+experiment_id: '362902656324247658'
+lifecycle_stage: active
+run_id: ea803b1fc7a74bdd9ea541bbc4e3d9f2
+run_name: fearless-sponge-491
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756565469803
+status: 4
+tags: []
+user_id: bhavy

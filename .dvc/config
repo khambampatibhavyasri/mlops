@@ -1,0 +1,5 @@
+[core]
+    remote = origin
+['remote "origin"']
+    url = https://dagshub.com/bhavyasri2126/mlops.dvc
+    auth = basic
