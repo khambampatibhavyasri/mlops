@@ -62,8 +62,8 @@ stages:
       size: 175
     - path: src/models/train_baseline.py
       hash: md5
-      md5: 7aa42aef675f09e31ca236c04c6d1f31
-      size: 2966
+      md5: a9bfb1cb204e51d4c0c64205e8951d77
+      size: 3102
     params:
       params.yaml:
         features.include_competitor_diff: true
