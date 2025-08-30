@@ -1,6 +1,6 @@
 # dvc.yaml
 
-# Top-level: just tell DVC which file is the params file
+# Tell DVC which params file to watch
 params:
   - params.yaml
 
@@ -14,7 +14,6 @@ stages:
       - data/interim/ingested.csv
 
   features:
-    # Interpolate values from params.yaml via ${...}
     cmd: >
       python src/features/build_features.py
       --in data/interim/ingested.csv
@@ -31,7 +30,6 @@ stages:
       - params.yaml
     outs:
       - data/processed/features.csv
-    # Stage-level keys that should trigger rebuild if changed
     params:
       - train.target
       - features.use_one_hot
@@ -41,7 +39,6 @@ stages:
       - features.include_competitor_diff
 
   train:
-    # Pass alpha/target in so the script uses your params
     cmd: >
       python src/models/train_baseline.py
       --in data/processed/features.csv
@@ -56,7 +53,6 @@ stages:
     outs:
       - models/baseline_linear.json
       - models/metrics_baseline.json
-    # Stage-level params to watch
     params:
       - train.alpha
       - train.target
@@ -66,7 +62,7 @@ stages:
       - features.include_holiday
       - features.include_competitor_diff
 
-    automl_pycaret:
+  automl_pycaret:
     cmd: >
       python src/automl/pycaret_regression.py
       --in data/processed/features.csv
@@ -77,7 +73,6 @@ stages:
       --metrics reports/pycaret_metrics.json
       --experiment-name pycaret-regression
       --tracking-uri https://dagshub.com/bhavyasri2126/mlops.mlflow
-
     deps:
       - src/automl/pycaret_regression.py
       - data/processed/features.csv
