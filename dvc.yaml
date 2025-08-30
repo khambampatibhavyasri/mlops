@@ -66,7 +66,7 @@ stages:
       - features.include_holiday
       - features.include_competitor_diff
 
-  automl_pycaret:
+    automl_pycaret:
     cmd: >
       python src/automl/pycaret_regression.py
       --in data/processed/features.csv
@@ -76,7 +76,8 @@ stages:
       --model-dir models/pycaret_best
       --metrics reports/pycaret_metrics.json
       --experiment-name pycaret-regression
-      --tracking-uri file:./mlruns
+      --tracking-uri https://dagshub.com/bhavyasri2126/mlops.mlflow
+
     deps:
       - src/automl/pycaret_regression.py
       - data/processed/features.csv
