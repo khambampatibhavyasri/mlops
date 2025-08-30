@@ -8,10 +8,10 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 import mlflow
-import mlflow.sklearn  # ensures the sklearn flavor is available
+import mlflow.sklearn  # ensure sklearn flavor is registered
 
-EXPERIMENT_NAME = "retail-sales"   # shows up as the experiment in the UI
-TRACKING_URI = "file:./mlruns"     # local store in your repo
+EXPERIMENT_NAME = "retail-sales"
+TRACKING_URI = "file:./mlruns"
 
 def main():
     ap = argparse.ArgumentParser(description="Train a Ridge baseline and log to MLflow.")
@@ -22,59 +22,58 @@ def main():
     ap.add_argument("--target", required=True, help="Target column name")
     args = ap.parse_args()
 
-    # ---- Load features
+    # Load features
     df = pd.read_csv(args.inp)
-    cols = [c for c in df.columns if c != args.target]
-    if "date" in cols:
-        cols.remove("date")
-    X = df[cols]
+    feature_cols = [c for c in df.columns if c != args.target]
+    if "date" in feature_cols:
+        feature_cols.remove("date")
+    X = df[feature_cols]
     y = df[args.target]
 
-    # ---- Set up MLflow
+    # MLflow setup
     mlflow.set_tracking_uri(TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     with mlflow.start_run() as run:
-        # Log key params (add more if you like)
+        # Params
         mlflow.log_param("model_type", "Ridge")
         mlflow.log_param("alpha", args.alpha)
         mlflow.log_param("target", args.target)
         mlflow.log_param("n_features", X.shape[1])
 
-        # ---- Train
+        # Train
         model = Ridge(alpha=args.alpha)
         model.fit(X, y)
         preds = model.predict(X)
 
-        # ---- Metrics
+        # Metrics (compat mode: compute RMSE manually)
         mae = float(mean_absolute_error(y, preds))
-        rmse = float(mean_squared_error(y, preds, squared=False))
+        mse = float(mean_squared_error(y, preds))
+        rmse = mse ** 0.5
         metrics = {"train_mae": mae, "train_rmse": rmse}
 
-        # Save metrics file for your repo artifacts
+        # Save metrics file
         os.makedirs(os.path.dirname(args.metrics), exist_ok=True)
         with open(args.metrics, "w") as f:
             json.dump(metrics, f, indent=2)
 
-        # Save a minimal JSON “model” so your pipeline still produces the same outputs
+        # Save a minimal JSON “model” (for your pipeline artifacts)
         os.makedirs(os.path.dirname(args.model), exist_ok=True)
         model_blob = {
             "type": "Ridge",
             "alpha": args.alpha,
             "intercept": float(model.intercept_),
             "coef": [float(c) for c in model.coef_],
-            "features": cols,
+            "features": feature_cols,
             "target": args.target,
         }
         with open(args.model, "w") as f:
             json.dump(model_blob, f, indent=2)
 
-        # ---- Log to MLflow
+        # Log to MLflow
         mlflow.log_metrics(metrics)
-        # attach the JSON files as artifacts so you can open them in the UI
         mlflow.log_artifact(args.metrics)
         mlflow.log_artifact(args.model)
-        # also log the sklearn model in MLflow format (optional but nice)
         mlflow.sklearn.log_model(model, artifact_path="model")
 
         print(json.dumps({"experiment": EXPERIMENT_NAME,
