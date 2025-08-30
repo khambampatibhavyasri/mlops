@@ -65,7 +65,8 @@ stages:
       - features.include_promo
       - features.include_holiday
       - features.include_competitor_diff
-    automl_pycaret:
+
+  automl_pycaret:
     cmd: >
       python src/automl/pycaret_regression.py
       --in data/processed/features.csv
