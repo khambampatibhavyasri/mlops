@@ -1,3 +1,16 @@
+# dvc.yaml
+
+# Tell DVC which params affect the pipeline
+params:
+  - params.yaml:
+      - train.alpha
+      - train.target
+      - features.use_one_hot
+      - features.include_price
+      - features.include_promo
+      - features.include_holiday
+      - features.include_competitor_diff
+
 stages:
   ingest:
     cmd: python src/ingest/ingest.py data/raw/sales.csv --out data/interim/ingested.csv
@@ -8,27 +21,37 @@ stages:
       - data/interim/ingested.csv
 
   features:
-    cmd: python src/features/build_features.py --in data/interim/ingested.csv --out data/processed/features.csv
+    # pass params.yaml values as CLI flags
+    cmd: >
+      python src/features/build_features.py
+      --in data/interim/ingested.csv
+      --out data/processed/features.csv
+      --target ${train.target}
+      --use-one-hot ${features.use_one_hot}
+      --include-price ${features.include_price}
+      --include-promo ${features.include_promo}
+      --include-holiday ${features.include_holiday}
+      --include-competitor-diff ${features.include_competitor_diff}
     deps:
       - src/features/build_features.py
       - data/interim/ingested.csv
+      - params.yaml
     outs:
       - data/processed/features.csv
 
   train:
-    cmd: python src/models/train_baseline.py --in data/processed/features.csv --model models/baseline_linear.json --metrics models/metrics_baseline.json
+    # pass alpha & target from params.yaml
+    cmd: >
+      python src/models/train_baseline.py
+      --in data/processed/features.csv
+      --model models/baseline_linear.json
+      --metrics models/metrics_baseline.json
+      --alpha ${train.alpha}
+      --target ${train.target}
     deps:
-      - src/models/train_baseline.py   # make sure this file actually exists
+      - src/models/train_baseline.py
       - data/processed/features.csv
+      - params.yaml
     outs:
       - models/baseline_linear.json
       - models/metrics_baseline.json
-    params:
-      - params.yaml:
-          - train.alpha
-          - train.target
-          - features.use_one_hot
-          - features.include_price
-          - features.include_promo
-          - features.include_holiday
-          - features.include_competitor_diff
