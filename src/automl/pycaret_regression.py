@@ -1,6 +1,6 @@
 # src/automl/pycaret_regression.py
 
-import argparse, os, json
+import argparse, os, json, glob
 import pandas as pd
 import mlflow
 from pycaret.regression import setup, compare_models, pull, predict_model, save_model
@@ -11,7 +11,7 @@ def main():
     ap.add_argument("--target", required=True, help="Target column name (e.g., 'units')")
     ap.add_argument("--leaderboard", required=True, help="Path to write PyCaret leaderboard CSV")
     ap.add_argument("--pred-sample", required=True, help="Path to write sample predictions CSV")
-    ap.add_argument("--model-dir", required=True, help="Base path for saving best model (PyCaret adds .pkl)")
+    ap.add_argument("--model-dir", required=True, help="Base path for saving best model (PyCaret adds extension)")
     ap.add_argument("--metrics", required=True, help="Path to write top-model metrics JSON")
     ap.add_argument("--experiment-name", default="pycaret-regression", help="MLflow experiment name")
     ap.add_argument("--tracking-uri", default="file:./mlruns", help="MLflow tracking URI")
@@ -26,13 +26,13 @@ def main():
     if "date" in df.columns:
         df = df.drop(columns=["date"])
 
-    # -------- PyCaret setup (disable its internal MLflow logger!) --------
+    # -------- PyCaret setup (disable its internal MLflow logger) --------
     setup(
         data=df,
         target=args.target,
         session_id=42,
-        log_experiment=False,     # <<< important: avoid PyCaret's MLflow integration
-        verbose=False
+        log_experiment=False,
+        verbose=False,
     )
 
     # Compare models and get leaderboard
@@ -58,13 +58,22 @@ def main():
     with open(args.metrics, "w") as f:
         json.dump(metrics, f, indent=2)
 
-    # Save the best model (PyCaret adds .pkl)
+    # Save the best model (PyCaret may return str or (model, path))
     os.makedirs(os.path.dirname(args.model_dir), exist_ok=True)
-    model_path_base = save_model(best, args.model_dir)  # returns base path without extension
+    saved = save_model(best, args.model_dir)  # returns base path, or (model_obj, base_path)
 
-    # -------- Manual MLflow logging (works with any MLflow version) -------
+    # Normalize to base path string
+    if isinstance(saved, (list, tuple)) and len(saved) >= 2:
+        model_base_path = saved[1]
+    else:
+        model_base_path = saved  # already a string
+
+    # Collect all files produced by save_model (e.g., .pkl, .json, .bin, etc.)
+    model_files = sorted(glob.glob(f"{model_base_path}*"))
+
+    # -------- Manual MLflow logging -------
     with mlflow.start_run() as run:
-        # log params you care about
+        # log params
         mlflow.log_param("automl_library", "pycaret")
         mlflow.log_param("target", args.target)
         if "Model" in top:
@@ -74,15 +83,15 @@ def main():
         if metrics:
             mlflow.log_metrics(metrics)
 
-        # log artifacts
+        # log artifacts produced by this script
         mlflow.log_artifact(args.leaderboard)
         mlflow.log_artifact(args.pred_sample)
         mlflow.log_artifact(args.metrics)
 
-        # also log the PyCaret model file (ends with .pkl)
-        pkl_path = model_path_base + ".pkl"
-        if os.path.exists(pkl_path):
-            mlflow.log_artifact(pkl_path)
+        # log all model files PyCaret wrote
+        for fp in model_files:
+            if os.path.isfile(fp):
+                mlflow.log_artifact(fp)
 
         print(json.dumps({
             "experiment": args.experiment_name,
