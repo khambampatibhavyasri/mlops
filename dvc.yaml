@@ -1,15 +1,8 @@
 # dvc.yaml
 
-# Tell DVC which params affect the pipeline
+# Top-level: just tell DVC which file is the params file
 params:
-  - params.yaml:
-      - train.alpha
-      - train.target
-      - features.use_one_hot
-      - features.include_price
-      - features.include_promo
-      - features.include_holiday
-      - features.include_competitor_diff
+  - params.yaml
 
 stages:
   ingest:
@@ -21,7 +14,7 @@ stages:
       - data/interim/ingested.csv
 
   features:
-    # pass params.yaml values as CLI flags
+    # Interpolate values from params.yaml via ${...}
     cmd: >
       python src/features/build_features.py
       --in data/interim/ingested.csv
@@ -38,9 +31,17 @@ stages:
       - params.yaml
     outs:
       - data/processed/features.csv
+    # Stage-level keys that should trigger rebuild if changed
+    params:
+      - train.target
+      - features.use_one_hot
+      - features.include_price
+      - features.include_promo
+      - features.include_holiday
+      - features.include_competitor_diff
 
   train:
-    # pass alpha & target from params.yaml
+    # Pass alpha/target in so the script uses your params
     cmd: >
       python src/models/train_baseline.py
       --in data/processed/features.csv
@@ -55,3 +56,12 @@ stages:
     outs:
       - models/baseline_linear.json
       - models/metrics_baseline.json
+    # Stage-level params to watch
+    params:
+      - train.alpha
+      - train.target
+      - features.use_one_hot
+      - features.include_price
+      - features.include_promo
+      - features.include_holiday
+      - features.include_competitor_diff
