@@ -4,6 +4,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PIP_NO_INPUT: "1"
+  PYTHONUNBUFFERED: "1"    # flush prints immediately
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -13,23 +14,21 @@ cache:
 
 stages: [setup, train, automl, push]
 
-# ---------- reusable setup (install deps + DVC auth) ----------
+# ---------- reusable setup ----------
 .setup:
   stage: setup
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends git gcc g++ build-essential libgomp1 curl && rm -rf /var/lib/apt/lists/*
     - python -m pip install -U pip wheel setuptools
     - pip install -r requirements.txt
-    # DVC remote auth (writes .dvc/config.local)
+    # DVC remote auth
     - dvc remote list || true
     - dvc remote modify origin auth basic
     - dvc remote modify origin --local user "$DAGSHUB_USER"
     - dvc remote modify origin --local password "$DAGSHUB_TOKEN"
+    - echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
+    - echo "Branch=${CI_COMMIT_BRANCH} Commit=${CI_COMMIT_SHORT_SHA}"
     - dvc pull || true
-    # expose MLflow creds to processes (GitLab already injects envs; this makes it explicit)
-    - export MLFLOW_TRACKING_URI="$MLFLOW_TRACKING_URI"
-    - export MLFLOW_TRACKING_USERNAME="$MLFLOW_TRACKING_USERNAME"
-    - export MLFLOW_TRACKING_PASSWORD="$MLFLOW_TRACKING_PASSWORD"
   artifacts:
     when: always
     expire_in: 1 week
@@ -37,14 +36,17 @@ stages: [setup, train, automl, push]
       - .dvc/config.local
       - .cache/pip
   rules:
-    - when: always   # ensure setup runs on every pipeline
+    - when: always
 
-# ---------- just show versions; proves setup ran ----------
 setup:
   extends: .setup
   script:
     - python -c "import sys; print('Python', sys.version)"
     - dvc version
+    - python - << 'PY'
+from mlflow import get_tracking_uri
+print("MLflow tracking URI:", get_tracking_uri())
+PY
 
 # ---------- baseline training ----------
 train:
@@ -52,7 +54,29 @@ train:
   stage: train
   needs: ["setup"]
   script:
+    - python - << 'PY'
+import os, mlflow
+print("Using MLflow URI:", mlflow.get_tracking_uri())
+PY
     - dvc repro train
+    - python - << 'PY'
+import os, mlflow, time
+from mlflow.tracking import MlflowClient
+exp = mlflow.get_experiment_by_name("retail-sales")
+if exp:
+    c = MlflowClient()
+    runs = c.search_runs([exp.experiment_id], order_by=["attributes.start_time DESC"], max_results=1)
+    if runs:
+        run = runs[0]
+        uri = os.getenv("MLFLOW_TRACKING_URI")
+        link = f"{uri}/#/experiments/{exp.experiment_id}/runs/{run.info.run_id}" if uri and uri.startswith("http") else "(local file store)"
+        print("Latest 'retail-sales' run:", run.info.run_id)
+        print("Open DAGsHub run:", link)
+    else:
+        print("No runs found in 'retail-sales'.")
+else:
+    print("Experiment 'retail-sales' not found.")
+PY
   artifacts:
     expire_in: 1 week
     paths:
@@ -67,7 +91,29 @@ automl:
   stage: automl
   needs: ["train"]
   script:
+    - python - << 'PY'
+import os, mlflow
+print("Using MLflow URI:", mlflow.get_tracking_uri())
+PY
     - dvc repro automl_pycaret
+    - python - << 'PY'
+import os, mlflow
+from mlflow.tracking import MlflowClient
+exp = mlflow.get_experiment_by_name("pycaret-regression")
+if exp:
+    c = MlflowClient()
+    runs = c.search_runs([exp.experiment_id], order_by=["attributes.start_time DESC"], max_results=1)
+    if runs:
+        run = runs[0]
+        uri = os.getenv("MLFLOW_TRACKING_URI")
+        link = f"{uri}/#/experiments/{exp.experiment_id}/runs/{run.info.run_id}" if uri and uri.startswith("http") else "(local file store)"
+        print("Latest 'pycaret-regression' run:", run.info.run_id)
+        print("Open DAGsHub run:", link)
+    else:
+        print("No runs found in 'pycaret-regression'.")
+else:
+    print("Experiment 'pycaret-regression' not found.")
+PY
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
   artifacts:
@@ -83,7 +129,9 @@ push_dvc:
   stage: push
   needs: ["train", "automl"]
   script:
-    - dvc status -c
+    - dvc remote list
+    - dvc status -c || true
     - dvc push -v
+    - dvc status -c
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
