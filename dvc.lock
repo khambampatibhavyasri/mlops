@@ -86,7 +86,7 @@ stages:
     cmd: "python src/automl/pycaret_regression.py --in data/processed/features.csv
       --target units --leaderboard reports/pycaret_leaderboard.csv --pred-sample reports/pycaret_predictions_sample.csv
       --model-dir models/pycaret_best --metrics reports/pycaret_metrics.json --experiment-name
-      pycaret-regression --tracking-uri file:./mlruns\n"
+      pycaret-regression --tracking-uri https://dagshub.com/bhavyasri2126/mlops.mlflow\n"
     deps:
     - path: data/processed/features.csv
       hash: md5
@@ -110,8 +110,8 @@ stages:
       size: 192915
     - path: reports/pycaret_leaderboard.csv
       hash: md5
-      md5: 3273ed4cae0fe6842caebe69cb43ce07
-      size: 1407
+      md5: 3e39dfa3d1b5479ad3bd735e6b0d0807
+      size: 1404
     - path: reports/pycaret_metrics.json
       hash: md5
       md5: 8ca1fb46cc512f3be3efb12bfae2886b

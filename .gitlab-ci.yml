@@ -1,0 +1,111 @@
+image: python:3.10-slim
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  DVC_DIR: "$CI_PROJECT_DIR/.dvc"
+  # Make pip quieter and faster
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  PIP_NO_INPUT: "1"
+
+cache:
+  # Speed up repeated installs and keep DVC cache across jobs
+  paths:
+    - .cache/pip
+    - .dvc/cache
+
+stages:
+  - setup
+  - train
+  - automl
+  - push
+
+# ------------- Common setup -------------
+.setup:
+  stage: setup
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git gcc build-essential libgomp1 curl && rm -rf /var/lib/apt/lists/*
+    - python -m pip install -U pip wheel setuptools
+    - pip install -r requirements.txt
+    # DVC remote auth → writes to .dvc/config.local (not committed)
+    - dvc remote list
+    - dvc remote modify origin auth basic
+    - dvc remote modify origin --local user "$DAGSHUB_USER"
+    - dvc remote modify origin --local password "$DAGSHUB_TOKEN"
+    # (optional) fetch any needed data to reproduce
+    - dvc pull || true
+    # Export MLflow creds to env for scripts
+    - export MLFLOW_TRACKING_URI="$MLFLOW_TRACKING_URI"
+    - export MLFLOW_TRACKING_USERNAME="$MLFLOW_TRACKING_USERNAME"
+    - export MLFLOW_TRACKING_PASSWORD="$MLFLOW_TRACKING_PASSWORD"
+  rules:
+    - changes:
+        - src/**/*      # code
+        - dvc.yaml
+        - params.yaml
+        - data/raw/**/* # if you commit small raw files
+        - requirements.txt
+        - .gitlab-ci.yml
+
+setup:
+  extends: .setup
+  script:
+    - python -c "import sys; print('Python',sys.version)"
+    - dvc version
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - .dvc/config.local
+      - .cache/pip
+
+# ------------- Baseline training -------------
+train:
+  stage: train
+  needs: ["setup"]
+  script:
+    - dvc repro train
+  rules:
+    - changes:
+        - src/**/* 
+        - dvc.yaml
+        - params.yaml
+        - data/raw/**/*
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - models/
+      - reports/
+      - data/processed/
+      - dvc.lock
+      - .dvc/cache
+
+# ------------- AutoML (can be slower) -------------
+automl:
+  stage: automl
+  needs: ["train"]
+  script:
+    - dvc repro automl_pycaret
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'   # run on main; adjust if you like
+    - changes:
+        - src/**/* 
+        - dvc.yaml
+        - params.yaml
+        - data/raw/**/*
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - models/
+      - reports/
+      - dvc.lock
+      - .dvc/cache
+
+# ------------- Push artifacts to DAGsHub DVC -------------
+push_dvc:
+  stage: push
+  needs: ["train", "automl"]
+  script:
+    - dvc status -c
+    - dvc push -v
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

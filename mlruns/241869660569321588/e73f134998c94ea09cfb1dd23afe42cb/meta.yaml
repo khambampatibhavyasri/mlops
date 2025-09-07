@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/mlops/mlruns/241869660569321588/e73f134998c94ea09cfb1dd23afe42cb/artifacts
+end_time: 1756573909852
+entry_point_name: ''
+experiment_id: '241869660569321588'
+lifecycle_stage: active
+run_id: e73f134998c94ea09cfb1dd23afe42cb
+run_name: abundant-fowl-585
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756573903618
+status: 3
+tags: []
+user_id: bhavyasri2126

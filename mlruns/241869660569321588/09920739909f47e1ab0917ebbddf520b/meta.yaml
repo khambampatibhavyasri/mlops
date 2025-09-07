@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/mlops/mlruns/241869660569321588/09920739909f47e1ab0917ebbddf520b/artifacts
+end_time: 1756574127613
+entry_point_name: ''
+experiment_id: '241869660569321588'
+lifecycle_stage: active
+run_id: 09920739909f47e1ab0917ebbddf520b
+run_name: melodic-croc-425
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1756574125048
+status: 3
+tags: []
+user_id: bhavyasri2126

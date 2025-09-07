@@ -9,6 +9,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 import mlflow
 import mlflow.sklearn  # ensure sklearn flavor is registered
+import os, mlflow
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:./mlruns"))
+mlflow.set_experiment("retail-sales")
+
 
 EXPERIMENT_NAME = "retail-sales"
 TRACKING_URI = "file:./mlruns"
