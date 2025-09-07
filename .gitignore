@@ -37,3 +37,8 @@ Thumbs.db
 
 # Ignore everything except env
 !.dvc/
+.dvc/cache/
+
+.dvc/cache/
+
+.dvc/cache/
