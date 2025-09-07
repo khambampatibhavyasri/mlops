@@ -124,7 +124,7 @@ if exp:
         print("Open DAGsHub run:", link)
     else:
         print("No runs found in 'pycaret-regression'.")
-else:
+        else:
     print("Experiment 'pycaret-regression' not found. Did the script log a run?")
 PY
   artifacts:
