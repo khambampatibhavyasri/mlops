@@ -4,7 +4,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PIP_NO_INPUT: "1"
-  PYTHONUNBUFFERED: "1"    # flush prints immediately
+  PYTHONUNBUFFERED: "1"    # flush logs immediately
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -21,7 +21,7 @@ stages: [setup, train, automl, push]
     - apt-get update && apt-get install -y --no-install-recommends git gcc g++ build-essential libgomp1 curl && rm -rf /var/lib/apt/lists/*
     - python -m pip install -U pip wheel setuptools
     - pip install -r requirements.txt
-    # DVC remote auth
+    # DVC remote auth (writes .dvc/config.local)
     - dvc remote list || true
     - dvc remote modify origin auth basic
     - dvc remote modify origin --local user "$DAGSHUB_USER"
@@ -38,6 +38,7 @@ stages: [setup, train, automl, push]
   rules:
     - when: always
 
+# ---------- just show versions; proves setup ran ----------
 setup:
   extends: .setup
   script:
@@ -55,12 +56,12 @@ train:
   needs: ["setup"]
   script:
     - python - << 'PY'
-import os, mlflow
+import mlflow
 print("Using MLflow URI:", mlflow.get_tracking_uri())
 PY
     - dvc repro train
     - python - << 'PY'
-import os, mlflow, time
+import os, mlflow
 from mlflow.tracking import MlflowClient
 exp = mlflow.get_experiment_by_name("retail-sales")
 if exp:
@@ -92,7 +93,7 @@ automl:
   needs: ["train"]
   script:
     - python - << 'PY'
-import os, mlflow
+import mlflow
 print("Using MLflow URI:", mlflow.get_tracking_uri())
 PY
     - dvc repro automl_pycaret
@@ -127,7 +128,7 @@ PY
 push_dvc:
   extends: .setup
   stage: push
-  needs: ["train", "automl"]
+  needs: ["train"]   # automl may be skipped on non-main; don't block pushing
   script:
     - dvc remote list
     - dvc status -c || true
