@@ -4,7 +4,7 @@ variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   PIP_DISABLE_PIP_VERSION_CHECK: "1"
   PIP_NO_INPUT: "1"
-  PYTHONUNBUFFERED: "1"    # flush logs immediately
+  PYTHONUNBUFFERED: "1"
 
 cache:
   key: ${CI_COMMIT_REF_SLUG}
@@ -18,16 +18,19 @@ stages: [setup, train, automl, push]
 .setup:
   stage: setup
   before_script:
+    # Git can refuse if repo owner UID != runner UID
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
     - apt-get update && apt-get install -y --no-install-recommends git gcc g++ build-essential libgomp1 curl && rm -rf /var/lib/apt/lists/*
     - python -m pip install -U pip wheel setuptools
-    - pip install -r requirements.txt
-    # DVC remote auth (writes .dvc/config.local)
+    - pip install -r requirements.txt --no-cache-dir
+    # DVC auth to DAGsHub (writes .dvc/config.local)
     - dvc remote list || true
     - dvc remote modify origin auth basic
     - dvc remote modify origin --local user "$DAGSHUB_USER"
     - dvc remote modify origin --local password "$DAGSHUB_TOKEN"
     - echo "MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}"
     - echo "Branch=${CI_COMMIT_BRANCH} Commit=${CI_COMMIT_SHORT_SHA}"
+    # If your raw data is DVC-tracked, this pulls it; if raw is in Git, this is a no-op
     - dvc pull || true
   artifacts:
     when: always
@@ -38,7 +41,7 @@ stages: [setup, train, automl, push]
   rules:
     - when: always
 
-# ---------- just show versions; proves setup ran ----------
+# ---------- prove setup is good ----------
 setup:
   extends: .setup
   script:
@@ -49,17 +52,24 @@ from mlflow import get_tracking_uri
 print("MLflow tracking URI:", get_tracking_uri())
 PY
 
-# ---------- baseline training ----------
+# ---------- baseline train (fast, required) ----------
 train:
   extends: .setup
   stage: train
   needs: ["setup"]
   script:
+    # Sanity: raw file exists?
+    - ls -al data || true
+    - ls -al data/raw || true
+    - test -f data/raw/sales.csv && echo "Found raw sales.csv" || echo "WARNING: data/raw/sales.csv missing (ensure it's committed or DVC-tracked)"
+    # Show which MLflow store is active
     - python - << 'PY'
 import mlflow
 print("Using MLflow URI:", mlflow.get_tracking_uri())
 PY
-    - dvc repro train
+    # Reproduce only train stage (ingest/features will run if needed)
+    - dvc repro train -v
+    # Print link to the latest MLflow run
     - python - << 'PY'
 import os, mlflow
 from mlflow.tracking import MlflowClient
@@ -76,7 +86,7 @@ if exp:
     else:
         print("No runs found in 'retail-sales'.")
 else:
-    print("Experiment 'retail-sales' not found.")
+    print("Experiment 'retail-sales' not found. Did the script log a run?")
 PY
   artifacts:
     expire_in: 1 week
@@ -86,17 +96,19 @@ PY
       - reports/
       - data/processed/
 
-# ---------- AutoML with PyCaret ----------
+# ---------- AutoML (manual, optional, won't fail pipeline) ----------
 automl:
   extends: .setup
   stage: automl
   needs: ["train"]
+  when: manual
+  allow_failure: true
   script:
     - python - << 'PY'
 import mlflow
 print("Using MLflow URI:", mlflow.get_tracking_uri())
 PY
-    - dvc repro automl_pycaret
+    - dvc repro automl_pycaret -v
     - python - << 'PY'
 import os, mlflow
 from mlflow.tracking import MlflowClient
@@ -113,10 +125,8 @@ if exp:
     else:
         print("No runs found in 'pycaret-regression'.")
 else:
-    print("Experiment 'pycaret-regression' not found.")
+    print("Experiment 'pycaret-regression' not found. Did the script log a run?")
 PY
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
   artifacts:
     expire_in: 1 week
     paths:
@@ -124,15 +134,13 @@ PY
       - models/
       - reports/
 
-# ---------- push DVC artifacts to DAGsHub ----------
+# ---------- push DVC artifacts to DAGsHub (required) ----------
 push_dvc:
   extends: .setup
   stage: push
-  needs: ["train"]   # automl may be skipped on non-main; don't block pushing
+  needs: ["train"]   # don't block on automl (manual)
   script:
     - dvc remote list
     - dvc status -c || true
     - dvc push -v
     - dvc status -c
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
