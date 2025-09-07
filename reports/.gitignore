@@ -1,3 +1,2 @@
-/pycaret_leaderboard.csv
-/pycaret_predictions_sample.csv
-/pycaret_metrics.json
+*
+!.gitignore
